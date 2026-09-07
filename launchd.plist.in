@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Template. install.sh substitutes @USER@, @HOME@, @BREW_BIN@ and
+     @VPNC_SCRIPT@ and writes the result to /Library/LaunchDaemons. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.vpn.fortinet-keepalive</string>
+
+  <!-- Runs as root, so re-authentication after a drop never prompts for sudo.
+       The username AND password both come from the root-only conf file, so
+       nothing here needs editing. -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>@HOME@/bin/vpn-fortinet.sh</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>FORTI_CONF</key>
+    <string>/etc/openconnect-forti.conf</string>
+    <key>LOG</key>
+    <string>@HOME@/.vpn-fortinet.log</string>
+    <!-- The script drops back to this user to re-warm an ssh ControlMaster
+         once the tunnel returns: the keys and the ControlPath live in their
+         home, not root's. -->
+    <key>SUDO_USER</key>
+    <string>@USER@</string>
+    <!-- Host to re-warm against. Empty disables it. -->
+    <key>WARM_HOST</key>
+    <string>@WARM_HOST@</string>
+    <key>VPNC_SCRIPT</key>
+    <string>@VPNC_SCRIPT@</string>
+    <key>PATH</key>
+    <string>@BREW_BIN@:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <!-- The script's own loop handles drops; KeepAlive is the outer net, for the
+       case where the script itself dies (OOM, a bad openconnect upgrade). -->
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>@HOME@/.vpn-fortinet.daemon.log</string>
+  <key>StandardErrorPath</key>
+  <string>@HOME@/.vpn-fortinet.daemon.log</string>
+</dict>
+</plist>

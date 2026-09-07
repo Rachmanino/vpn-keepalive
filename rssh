@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# ssh to a host across a VPN that drops. The server forbids in-place reconnect
+# (see ~/bin/vpn-fortinet.sh), so a drop always costs a full re-auth of ~10-15 s
+# during which new connections time out while established ones are already gone.
+# Retrying is therefore the whole answer: the tunnel comes back by itself.
+#
+#   rssh b200-compile 'nvidia-smi'
+#
+# Long jobs should still be nohup'd with a log on the remote — this makes the
+# COMMAND survive a drop, not the session.
+set -uo pipefail
+: "${RSSH_TRIES:=12}"
+: "${RSSH_WAIT:=20}"
+for ((i = 1; i <= RSSH_TRIES; ++i)); do
+  ssh -o ConnectTimeout=20 -o ServerAliveInterval=15 "$@" && exit 0
+  rc=$?
+  # 255 is ssh's own transport failure. Anything else is the remote command's
+  # exit code and must be passed through, not retried.
+  ((rc == 255)) || exit "$rc"
+  echo "rssh: transport failed (try $i/$RSSH_TRIES), waiting ${RSSH_WAIT}s" >&2
+  sleep "$RSSH_WAIT"
+done
+echo "rssh: gave up after $RSSH_TRIES tries" >&2
+exit 255

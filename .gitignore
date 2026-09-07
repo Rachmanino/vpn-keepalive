@@ -1,0 +1,4 @@
+# never commit credentials or logs
+openconnect-forti.conf
+*.log
+.DS_Store
